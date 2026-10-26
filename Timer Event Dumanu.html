@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dumanu Timer System</title>
+    
+    <!-- Tailwind CSS for layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Cinzel (Epic/Fantasy) and Inter (Clean UI) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons for UI elements -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        :root {
+            --m2-bg: #080808;
+            --m2-panel: #121212;
+            --m2-gold: #b8860b;
+            --m2-gold-dim: #7a5907;
+            --m2-gold-bright: #ffd700;
+            --m2-red: #8b0000;
+            --m2-red-hover: #b22222;
+            --m2-text: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--m2-bg);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1a1a1a 0%, transparent 60%),
+                linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,1));
+            color: var(--m2-text);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, .cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* --- Dumanu Title Glow Animation --- */
+        @keyframes gold-glow-anim {
+            0% { text-shadow: 0 0 10px rgba(184, 134, 11, 0.6), 0 0 20px rgba(184, 134, 11, 0.4); }
+            50% { text-shadow: 0 0 25px rgba(255, 215, 0, 0.9), 0 0 35px rgba(255, 215, 0, 0.6), 0 0 45px rgba(184, 134, 11, 0.4); }
+            100% { text-shadow: 0 0 10px rgba(184, 134, 11, 0.6), 0 0 20px rgba(184, 134, 11, 0.4); }
+        }
+        
+        .dumanu-title {
+            background: -webkit-linear-gradient(var(--m2-gold-bright), #dfa823, var(--m2-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gold-glow-anim 3s ease-in-out infinite alternate;
+        }
+
+        /* Metin2 Styled Panels with Dynamic Mouse Lighting */
+        .m2-panel {
+            background: linear-gradient(145deg, #181818, #0a0a0a);
+            border: 1px solid var(--m2-gold-dim);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 5px 15px rgba(0,0,0,0.6);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .m2-panel:hover {
+            border-color: var(--m2-gold);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 8px 25px rgba(184, 134, 11, 0.25);
+        }
+
+        .m2-panel-hoverable:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Dynamic radial light that follows cursor via JS */
+        .m2-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(184, 134, 11, 0.15), transparent 80%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .m2-panel:hover::before {
+            opacity: 1;
+        }
+
+        .m2-panel > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Gold gradient text */
+        .text-gold {
+            background: -webkit-linear-gradient(var(--m2-gold-bright), var(--m2-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.9);
+        }
+
+        /* Buttons with Sweep Shine Animation */
+        .m2-btn {
+            background: linear-gradient(to bottom, #262626, #111111);
+            border: 1px solid var(--m2-gold-dim);
+            color: var(--m2-gold);
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px black;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        /* The Reflective Shine Element */
+        .m2-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255, 215, 0, 0.3), transparent);
+            transform: skewX(-25deg);
+            transition: left 0.6s ease;
+            z-index: 1;
+        }
+
+        .m2-btn:hover {
+            border-color: var(--m2-gold-bright);
+            color: var(--m2-gold-bright);
+            box-shadow: 0 0 15px rgba(184, 134, 11, 0.5), inset 0 0 10px rgba(184, 134, 11, 0.2);
+        }
+
+        .m2-btn:hover::after {
+            left: 200%;
+        }
+
+        /* Red Button Variant */
+        .m2-btn-red {
+            background: linear-gradient(to bottom, #5c0000, #330000);
+            border: 1px solid var(--m2-red);
+            color: #ff9999;
+        }
+        .m2-btn-red::after {
+            background: linear-gradient(to right, transparent, rgba(255, 100, 100, 0.4), transparent);
+        }
+        .m2-btn-red:hover {
+            background: linear-gradient(to bottom, #7a0000, #4d0000);
+            border-color: #ff4d4d;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6), inset 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
+        /* Inputs & Selects */
+        .m2-input {
+            background-color: #050505;
+            border: 1px solid #333;
+            color: #fff;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .m2-input:focus {
+            outline: none;
+            border-color: var(--m2-gold);
+            box-shadow: 0 0 12px rgba(184, 134, 11, 0.4), inset 0 2px 5px rgba(0,0,0,0.8);
+        }
+        
+        select.m2-input option {
+            background-color: #121212;
+            color: #fff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #080808; }
+        ::-webkit-scrollbar-thumb { background: var(--m2-gold-dim); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--m2-gold); }
+
+        /* Expired Animation (Aggressive Pulsing) */
+        @keyframes pulse-red {
+            0% { box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 0 5px rgba(255,0,0,0.3); border-color: var(--m2-red); }
+            50% { box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 0 30px rgba(255,0,0,0.7); border-color: #ff3333; }
+            100% { box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 0 5px rgba(255,0,0,0.3); border-color: var(--m2-red); }
+        }
+        .timer-expired {
+            animation: pulse-red 1.5s infinite;
+        }
+
+        /* Progress Bar */
+        .progress-bg { background-color: #111; border: 1px solid #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
+        .progress-fill {
+            background: linear-gradient(90deg, var(--m2-gold-dim) 0%, var(--m2-gold-bright) 100%);
+            transition: width 1s linear;
+            box-shadow: 0 0 10px rgba(184, 134, 11, 0.5);
+        }
+        .timer-expired .progress-fill {
+            background: linear-gradient(90deg, #8b0000 0%, #ff3333 100%);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+        }
+
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Event Badges */
+        .event-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body class="p-3 md:p-8 flex flex-col items-center">
+
+    <!-- Notification Permission Banner (Fixed Overflow) -->
+    <div id="notificationBanner" class="hidden w-full max-w-5xl mb-6 m2-panel p-4 flex-col sm:flex-row items-center justify-between gap-4 border-l-4" style="border-left-color: var(--m2-gold);">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+            <i class="ph ph-bell-ringing text-3xl flex-shrink-0" style="color: var(--m2-gold)"></i>
+            <div class="min-w-0">
+                <h3 class="cinzel text-lg font-bold text-gold truncate">Notificări Browser</h3>
+                <p class="text-xs sm:text-sm text-gray-400 break-words line-clamp-2">Permite notificările pentru a fi alertat pe desktop când timpul expiră, chiar dacă ești în joc!</p>
+            </div>
+        </div>
+        <button onclick="requestNotificationPermission()" class="m2-btn px-4 py-2 text-sm whitespace-nowrap flex-shrink-0">Activează</button>
+    </div>
+
+    <!-- Header -->
+    <header class="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-center sm:items-end mb-8 border-b pb-6 gap-4" style="border-color: var(--m2-gold-dim);">
+        <div class="flex items-center gap-4 sm:gap-6">
+            <!-- M2 Character Render -->
+            <img src="https://ro-wiki.metin2.gameforge.com/images/7/74/Dovleacul_Jack.png" 
+                 alt="Metin2 Jack Pumpkin" 
+                 class="h-20 w-20 object-contain transition-transform duration-500 hover:scale-110 cursor-pointer flex-shrink-0"
+                 style="filter: drop-shadow(0 0 15px var(--m2-gold));">
+            
+            <div class="flex flex-col justify-center">
+                <h1 class="cinzel text-4xl sm:text-5xl md:text-6xl font-black dumanu-title tracking-wider leading-none">DUMANU</h1>
+                <h2 class="cinzel text-lg sm:text-2xl font-bold tracking-widest mt-1" style="color: var(--m2-gold-dim);">TIMER SYSTEM</h2>
+            </div>
+        </div>
+        
+        <button onclick="toggleSettings()" class="m2-btn p-3 rounded-full flex items-center justify-center sm:mb-2" title="Setări Generale">
+            <i class="ph ph-gear text-2xl"></i>
+        </button>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Add Timer Controls -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Custom Timer Panel -->
+            <div class="m2-panel p-5">
+                <h2 class="cinzel text-xl text-gold mb-4 border-b pb-2" style="border-color: #4a3a1f;">Adaugă Cronometru</h2>
+                
+                <div class="space-y-4">
+                    <!-- Title -->
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Titlu (Boss / Piatră)</label>
+                        <input type="text" id="timerTitle" placeholder="ex: Înger cu coasă" class="m2-input">
+                    </div>
+                    
+                    <!-- Location with Manager Button -->
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Locație</label>
+                        <div class="flex gap-2">
+                            <select id="timerLocation" class="m2-input flex-grow cursor-pointer">
+                                <!-- Options populated by JS -->
+                            </select>
+                            <button onclick="toggleLocationModal()" class="m2-btn px-3 flex-shrink-0 rounded" title="Gestionează Locații">
+                                <i class="ph ph-map-trifold text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Event & Channel Grid -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Event -->
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Eveniment</label>
+                            <select id="timerEvent" class="m2-input cursor-pointer">
+                                <option value="none">Niciunul</option>
+                                <option value="craciun">Crăciun</option>
+                                <option value="halloween">Halloween</option>
+                                <option value="paste">Paște</option>
+                                <option value="aniversar">Aniversar</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Channel -->
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Canal (CH)</label>
+                            <select id="timerChannel" class="m2-input cursor-pointer">
+                                <option value="CH1">CH1</option>
+                                <option value="CH2">CH2</option>
+                                <option value="CH3">CH3</option>
+                                <option value="CH4">CH4</option>
+                                <option value="CH5">CH5</option>
+                                <option value="CH6">CH6</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Time Inputs -->
+                    <div class="grid grid-cols-3 gap-2 pt-2">
+                        <div>
+                            <label class="block text-xs uppercase text-gray-400 mb-1 text-center">Ore</label>
+                            <input type="number" id="timerH" min="0" max="99" value="0" class="m2-input text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-gray-400 mb-1 text-center">Min</label>
+                            <input type="number" id="timerM" min="0" max="59" value="0" class="m2-input text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-gray-400 mb-1 text-center">Sec</label>
+                            <input type="number" id="timerS" min="0" max="59" value="0" class="m2-input text-center">
+                        </div>
+                    </div>
+                    
+                    <button onclick="addCustomTimer()" class="m2-btn w-full py-3 mt-4 text-lg tracking-widest rounded flex justify-center items-center">
+                        <i class="ph ph-plus-circle"></i> ADAUGĂ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Add Panel -->
+            <div class="m2-panel p-5">
+                <h2 class="cinzel text-xl text-gold mb-4 border-b pb-2" style="border-color: #4a3a1f;">Respawn Rapid</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="addQuickTimer(15, 'Respawn 15m')" class="m2-btn py-2 text-sm rounded">15 Min</button>
+                    <button onclick="addQuickTimer(30, 'Respawn 30m')" class="m2-btn py-2 text-sm rounded">30 Min</button>
+                    <button onclick="addQuickTimer(60, 'Respawn 1h')" class="m2-btn py-2 text-sm rounded">1 Oră</button>
+                    <button onclick="addQuickTimer(120, 'Respawn 2h')" class="m2-btn py-2 text-sm rounded">2 Ore</button>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Right Column: Active Timers -->
+        <div class="lg:col-span-8 flex flex-col">
+            <div class="flex justify-between items-end mb-4 px-2 border-b border-gray-800 pb-2">
+                <h2 class="cinzel text-2xl text-gold">Cronometre Active</h2>
+                <span id="activeCount" class="text-gray-400 text-sm font-medium bg-gray-900 px-3 py-1 rounded-full border border-gray-700">0 active</span>
+            </div>
+            
+            <div id="timersContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max">
+                <!-- Timers will be injected here via JS -->
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="m2-panel p-10 text-center flex flex-col items-center justify-center opacity-60 mt-4 flex-grow">
+                <div class="relative mb-4">
+                    <i class="ph ph-hourglass-high text-6xl text-gray-600 animate-pulse"></i>
+                    <i class="ph ph-sword absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl text-gray-800"></i>
+                </div>
+                <p class="cinzel text-xl text-gray-400">Niciun boss în așteptare.</p>
+                <p class="text-sm text-gray-500 mt-2">Adaugă un cronometru din panoul lateral pentru a începe vânătoarea.</p>
+            </div>
+        </div>
+        
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="m2-panel p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6 border-b pb-2" style="border-color: var(--m2-gold-dim);">
+                <h2 class="cinzel text-2xl text-gold"><i class="ph ph-gear mr-2"></i>Setări Sistem</h2>
+                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white transition"><i class="ph ph-x text-2xl"></i></button>
+            </div>
+            
+            <div class="space-y-5">
+                <!-- Sound Toggle -->
+                <div class="flex items-center justify-between p-2 hover:bg-white hover:bg-opacity-5 rounded transition">
+                    <div>
+                        <p class="font-semibold text-gray-200">Sunet Alertă</p>
+                        <p class="text-xs text-gray-400">Redă un sunet la terminarea timpului</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="settingSound" class="sr-only peer" onchange="saveSettings()">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                    </label>
+                </div>
+
+                <!-- Notif Toggle -->
+                <div class="flex items-center justify-between p-2 hover:bg-white hover:bg-opacity-5 rounded transition">
+                    <div>
+                        <p class="font-semibold text-gray-200">Notificări Desktop</p>
+                        <p class="text-xs text-gray-400">Afișează banner în colțul ecranului</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="settingNotif" class="sr-only peer" onchange="saveSettings()">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                    </label>
+                </div>
+                
+                <div class="pt-4 border-t mt-4" style="border-color: #333;">
+                    <button onclick="clearAllTimers()" class="w-full py-3 m2-btn-red rounded text-sm tracking-wider">
+                        <i class="ph ph-trash text-lg"></i> ȘTERGE TOATE CRONOMETRELE
+                    </button>
+                </div>
+            </div>
+            
+            <button onclick="toggleSettings()" class="m2-btn w-full mt-6 py-2 rounded">Închide</button>
+        </div>
+    </div>
+
+    <!-- Location Manager Modal -->
+    <div id="locationModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="m2-panel p-6 w-full max-w-md mx-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b pb-2" style="border-color: var(--m2-gold-dim);">
+                <h2 class="cinzel text-xl text-gold"><i class="ph ph-map-trifold mr-2"></i>Gestionează Locații</h2>
+                <button onclick="toggleLocationModal()" class="text-gray-400 hover:text-white transition"><i class="ph ph-x text-2xl"></i></button>
+            </div>
+            
+            <!-- Add New Location -->
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="newLocationInput" placeholder="Nume locație nouă..." class="m2-input flex-grow">
+                <button onclick="addNewLocation()" class="m2-btn px-4 rounded"><i class="ph ph-plus font-bold"></i></button>
+            </div>
+
+            <!-- Locations List -->
+            <div class="overflow-y-auto pr-2 space-y-2 flex-grow" style="max-height: 300px;">
+                <ul id="locationList" class="space-y-2">
+                    <!-- Injected via JS -->
+                </ul>
+            </div>
+            
+            <button onclick="toggleLocationModal()" class="m2-btn w-full mt-6 py-2 rounded">Terminat</button>
+        </div>
+    </div>
+
+    <!-- Alert Modal (Fallback if notifications are denied) -->
+    <div id="alertModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="m2-panel p-8 w-full max-w-sm mx-4 text-center border-red-500 timer-expired">
+            <div class="relative w-20 h-20 mx-auto mb-4">
+                <i class="ph ph-warning-circle text-6xl text-red-500 absolute inset-0 flex items-center justify-center z-10"></i>
+                <div class="absolute inset-0 bg-red-500 rounded-full opacity-20 animate-ping"></div>
+            </div>
+            <h2 class="cinzel text-2xl text-gold mb-2">Timpul a expirat!</h2>
+            <p id="alertModalText" class="text-gray-200 mb-6 font-medium text-lg"></p>
+            <button onclick="closeAlertModal()" class="m2-btn w-full py-2 rounded">Am înțeles</button>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let timers = [];
+        let locations = [];
+        const defaultLocations = [
+            { id: 'loc_1', name: 'Valea Seungryong' },
+            { id: 'loc_2', name: 'Deșertul Yongbi' },
+            { id: 'loc_3', name: 'Muntele Sohan' },
+            { id: 'loc_4', name: 'Țara de Foc' },
+            { id: 'loc_5', name: 'Pădurea Fantomă' },
+            { id: 'loc_6', name: 'Pădurea Roșie' },
+            { id: 'loc_7', name: 'Turnul Demonilor' },
+            { id: 'loc_8', name: 'Grota Exilului' }
+        ];
+
+        let settings = {
+            sound: true,
+            notifications: true
+        };
+        let audioContext = null;
+
+        // --- Event Icon Mapping ---
+        const eventData = {
+            'none': { text: '', icon: '', color: '' },
+            'craciun': { text: 'Crăciun', icon: 'ph-gift', color: 'text-red-400 border-red-900 bg-red-950' },
+            'halloween': { text: 'Halloween', icon: 'ph-ghost', color: 'text-orange-400 border-orange-900 bg-orange-950' },
+            'paste': { text: 'Paște', icon: 'ph-egg', color: 'text-pink-400 border-pink-900 bg-pink-950' },
+            'aniversar': { text: 'Aniversar', icon: 'ph-cake', color: 'text-yellow-400 border-yellow-900 bg-yellow-950' }
+        };
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            checkNotificationStatus();
+            updateLocationUI();
+            updateTimersUI();
+            
+            // Core render loop
+            setInterval(gameLoop, 200);
+            
+            // Require user interaction to unlock Web Audio API
+            document.body.addEventListener('click', initAudio, { once: true });
+        });
+
+        function loadState() {
+            // Load Settings
+            const savedSettings = localStorage.getItem('dumanuSettings');
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+                document.getElementById('settingSound').checked = settings.sound;
+                document.getElementById('settingNotif').checked = settings.notifications;
+            } else {
+                document.getElementById('settingSound').checked = true;
+                document.getElementById('settingNotif').checked = true;
+            }
+
+            // Load Timers
+            const savedTimers = localStorage.getItem('dumanuTimers');
+            if (savedTimers) {
+                timers = JSON.parse(savedTimers);
+            }
+
+            // Load Locations
+            const savedLocations = localStorage.getItem('dumanuLocations');
+            if (savedLocations) {
+                locations = JSON.parse(savedLocations);
+                if (locations.length === 0) locations = [...defaultLocations]; // failsafe
+            } else {
+                locations = [...defaultLocations];
+                saveLocations();
+            }
+        }
+
+        function saveTimers() {
+            localStorage.setItem('dumanuTimers', JSON.stringify(timers));
+        }
+
+        function saveLocations() {
+            localStorage.setItem('dumanuLocations', JSON.stringify(locations));
+        }
+
+        function saveSettings() {
+            settings.sound = document.getElementById('settingSound').checked;
+            settings.notifications = document.getElementById('settingNotif').checked;
+            localStorage.setItem('dumanuSettings', JSON.stringify(settings));
+        }
+
+        // --- Locations Logic ---
+        function updateLocationUI() {
+            // 1. Update main Select dropdown
+            const selectEl = document.getElementById('timerLocation');
+            selectEl.innerHTML = '<option value="">Fără locație specificată</option>';
+            
+            locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc.name;
+                opt.innerText = loc.name;
+                selectEl.appendChild(opt);
+            });
+
+            // 2. Update Modal List
+            const listEl = document.getElementById('locationList');
+            listEl.innerHTML = '';
+            
+            locations.forEach(loc => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-[#1a1a1a] p-2 rounded border border-[#333]';
+                li.innerHTML = `
+                    <span class="text-gray-200 text-sm font-medium">${loc.name}</span>
+                    <button onclick="deleteLocation('${loc.id}')" class="text-red-500 hover:text-red-400 p-1 transition">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function toggleLocationModal() {
+            const modal = document.getElementById('locationModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function addNewLocation() {
+            const input = document.getElementById('newLocationInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            locations.push({
+                id: 'loc_' + Date.now(),
+                name: name
+            });
+
+            input.value = '';
+            saveLocations();
+            updateLocationUI();
+        }
+
+        function deleteLocation(id) {
+            locations = locations.filter(l => l.id !== id);
+            saveLocations();
+            updateLocationUI();
+        }
+
+        // --- Audio System (Web Audio API Synthesizer) ---
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        function playAlertSound() {
+            if (!settings.sound) return;
+            initAudio(); // Ensure context exists
+            if (!audioContext) return;
+
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            osc.type = 'sine';
+            
+            osc.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(1046.50, audioContext.currentTime + 0.1); // C6
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.7, audioContext.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + 2.1);
+        }
+
+        // --- Notifications System ---
+        function checkNotificationStatus() {
+            if (!("Notification" in window)) return;
+            
+            const banner = document.getElementById('notificationBanner');
+            if (Notification.permission === "default") {
+                banner.classList.remove('hidden');
+                banner.classList.add('flex');
+            } else {
+                banner.classList.add('hidden');
+                banner.classList.remove('flex');
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) return;
+            Notification.requestPermission().then(permission => {
+                checkNotificationStatus(); // hide banner
+                if (permission === "granted") {
+                    new Notification("Dumanu Timer System", {
+                        body: "Notificările au fost activate cu succes!",
+                        icon: "https://api.iconify.design/game-icons:crossed-swords.svg?color=%23c5a059"
+                    });
+                }
+            });
+        }
+
+        function triggerNotification(timer) {
+            playAlertSound();
+            
+            const title = "Boss Respawn!";
+            const locText = timer.location ? ` în ${timer.location}` : '';
+            const body = `${timer.title}${locText} a apărut!`;
+
+            if (settings.notifications && "Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: "https://api.iconify.design/game-icons:crossed-swords.svg?color=%23c5a059"
+                });
+            } else {
+                document.getElementById('alertModalText').innerText = body;
+                document.getElementById('alertModal').classList.remove('hidden');
+            }
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alertModal').classList.add('hidden');
+        }
+
+        // --- Timer Logic ---
+        function createTimer(title, totalSeconds, location = '', eventKey = 'none', channel = 'CH1') {
+            if (totalSeconds <= 0) return;
+            
+            // BUG FIX: ID global unic și sigur împotriva coliziunilor (ex: t_m2k9a_7g4h2x)
+            const uniqueId = 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+            
+            const newTimer = {
+                id: uniqueId,
+                title: title || "Țintă Necunoscută",
+                location: location,
+                eventKey: eventKey,
+                channel: channel,
+                durationSec: totalSeconds, // Păstrăm durata originală pentru funcția de Reset
+                targetTime: Date.now() + (totalSeconds * 1000),
+                notified: false,
+                createdAt: Date.now() // BUG FIX: Salvăm momentul exact al creării pentru o sortare fixă
+            };
+            
+            timers.push(newTimer);
+            saveTimers();
+            updateTimersUI();
+            
+            // Reset numerical inputs
+            document.getElementById('timerH').value = '0';
+            document.getElementById('timerM').value = '0';
+            document.getElementById('timerS').value = '0';
+        }
+
+        function addCustomTimer() {
+            const title = document.getElementById('timerTitle').value.trim();
+            const location = document.getElementById('timerLocation').value;
+            const eventKey = document.getElementById('timerEvent').value;
+            const channel = document.getElementById('timerChannel').value;
+            const h = parseInt(document.getElementById('timerH').value) || 0;
+            const m = parseInt(document.getElementById('timerM').value) || 0;
+            const s = parseInt(document.getElementById('timerS').value) || 0;
+            
+            const total = (h * 3600) + (m * 60) + s;
+            createTimer(title, total, location, eventKey, channel);
+        }
+
+        function addQuickTimer(minutes, baseTitle) {
+            // Pick up currently selected location, event & channel for quick add too!
+            const location = document.getElementById('timerLocation').value;
+            const eventKey = document.getElementById('timerEvent').value;
+            const channel = document.getElementById('timerChannel').value;
+            createTimer(baseTitle, minutes * 60, location, eventKey, channel);
+        }
+
+        function deleteTimer(id) {
+            timers = timers.filter(t => t.id !== id);
+            saveTimers();
+            updateTimersUI();
+        }
+
+        function resetTimer(id) {
+            // BUG FIX: Căutăm și resetăm STRICT cronometrul vizat, bazat pe ID-ul global unic
+            const timerIndex = timers.findIndex(t => t.id === String(id));
+            
+            if (timerIndex !== -1) {
+                // Setăm noul targetTime pornind din momentul actual + durata originală salvată
+                timers[timerIndex].targetTime = Date.now() + (timers[timerIndex].durationSec * 1000);
+                timers[timerIndex].notified = false;
+                
+                // Salvăm instant în localStorage starea actualizată
+                saveTimers();
+                
+                // Reconstruim complet cardurile. Nu mai modificăm clasele manual 
+                // pentru a evita desincronizările și bug-ul vizual
+                updateTimersUI();
+            }
+        }
+
+        function clearAllTimers() {
+            timers = [];
+            saveTimers();
+            updateTimersUI();
+            toggleSettings();
+        }
+
+        // --- Core Loop & UI Rendering ---
+        function formatTime(totalSeconds) {
+            // Prevent negative visual times
+            if (totalSeconds <= 0) return "00:00:00";
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function gameLoop() {
+            if (timers.length === 0) return;
+            
+            const now = Date.now();
+            let needsSave = false;
+
+            timers.forEach(timer => {
+                const remainingMs = timer.targetTime - now;
+                const timeEl = document.getElementById(`time-${timer.id}`);
+                const progressEl = document.getElementById(`prog-${timer.id}`);
+                const cardEl = document.getElementById(`card-${timer.id}`);
+                
+                if (!timeEl) return;
+
+                if (remainingMs <= 0) {
+                    if (timeEl.innerText !== "00:00:00") {
+                        timeEl.innerText = "00:00:00";
+                        timeEl.classList.add('text-red-500');
+                        timeEl.classList.remove('text-gold');
+                        progressEl.style.width = '100%';
+                        progressEl.classList.remove('bg-yellow-600');
+                        progressEl.classList.add('bg-red-600');
+                        cardEl.classList.add('timer-expired');
+                    }
+                    
+                    if (!timer.notified) {
+                        const expiredLongAgo = remainingMs < -300000; // 5 mins
+                        if (!expiredLongAgo) triggerNotification(timer);
+                        timer.notified = true;
+                        needsSave = true;
+                    }
+                } else {
+                    const remainingSec = Math.ceil(remainingMs / 1000);
+                    timeEl.innerText = formatTime(remainingSec);
+                    
+                    const elapsedMs = (timer.durationSec * 1000) - remainingMs;
+                    let percentage = (elapsedMs / (timer.durationSec * 1000)) * 100;
+                    if (percentage < 0) percentage = 0;
+                    if (percentage > 100) percentage = 100;
+                    progressEl.style.width = `${percentage}%`;
+                }
+            });
+
+            if (needsSave) saveTimers();
+        }
+
+        function generateEventBadgeHTML(eventKey) {
+            const ev = eventData[eventKey];
+            if (!ev || eventKey === 'none') return '';
+            return `
+                <span class="event-badge ${ev.color}">
+                    <i class="ph ${ev.icon} text-sm"></i> ${ev.text}
+                </span>
+            `;
+        }
+
+        function generateChannelBadgeHTML(channel) {
+            if (!channel) return '';
+            return `
+                <span class="event-badge text-blue-300 border-blue-800 bg-blue-950">
+                    <i class="ph ph-hash text-sm"></i> ${channel}
+                </span>
+            `;
+        }
+
+        function updateTimersUI() {
+            const container = document.getElementById('timersContainer');
+            const emptyState = document.getElementById('emptyState');
+            const activeCount = document.getElementById('activeCount');
+            
+            activeCount.innerText = `${timers.length} activ${timers.length !== 1 ? 'e' : ''}`;
+            
+            if (timers.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            let html = '';
+            
+            // BUG FIX: Sortăm strict după momentul creării. Astfel, ordinea nu se va mai schimba NICIODATĂ la resetare.
+            // Dacă ai cronometre vechi salvate deja care nu au 'createdAt', folosim fallback la 0.
+            const sortedTimers = [...timers].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            
+            sortedTimers.forEach(timer => {
+                const isExpired = Date.now() >= timer.targetTime;
+                const cardClass = isExpired ? 'timer-expired' : 'm2-panel-hoverable';
+                const textClass = isExpired ? 'text-red-500 font-bold' : 'text-gold font-bold';
+                
+                const locHTML = timer.location 
+                    ? `<div class="flex items-center gap-1 text-xs text-gray-400 mt-1"><i class="ph ph-map-pin"></i> ${timer.location}</div>` 
+                    : '';
+                
+                const eventHTML = generateEventBadgeHTML(timer.eventKey);
+                const channelHTML = generateChannelBadgeHTML(timer.channel);
+
+                html += `
+                    <div id="card-${timer.id}" class="m2-panel p-4 flex flex-col justify-between ${cardClass} h-full min-h-[140px]">
+                        
+                        <!-- Header: Title & Actions -->
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="flex flex-col overflow-hidden pr-2">
+                                <h3 class="cinzel text-lg text-gray-100 font-bold truncate tracking-wide" title="${timer.title}">${timer.title}</h3>
+                                ${locHTML}
+                            </div>
+                            <div class="flex gap-1 flex-shrink-0">
+                                <button onclick="resetTimer('${timer.id}')" class="text-gray-400 hover:text-green-400 transition-colors bg-black bg-opacity-30 rounded-full p-1" title="Resetează">
+                                    <i class="ph ph-arrows-clockwise text-lg"></i>
+                                </button>
+                                <button onclick="deleteTimer('${timer.id}')" class="text-gray-500 hover:text-red-500 transition-colors bg-black bg-opacity-30 rounded-full p-1" title="Șterge">
+                                    <i class="ph ph-x text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Badges -->
+                        <div class="mb-2 flex flex-wrap gap-2 min-h-[20px]">
+                            ${eventHTML}
+                            ${channelHTML}
+                        </div>
+                        
+                        <!-- Time Display -->
+                        <div class="flex-grow flex items-end justify-center mb-3">
+                            <span id="time-${timer.id}" class="cinzel tracking-widest text-3xl md:text-4xl ${textClass} drop-shadow-md">
+                                --:--:--
+                            </span>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="w-full h-2.5 progress-bg rounded-full overflow-hidden mt-auto">
+                            <div id="prog-${timer.id}" class="h-full progress-fill rounded-full" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            gameLoop();
+        }
+
+        // --- UI Interactions ---
+        function toggleSettings() {
+            document.getElementById('settingsModal').classList.toggle('hidden');
+        }
+        
+        // Prevent negative inputs in time fields
+        ['timerH', 'timerM', 'timerS'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                if (this.value < 0) this.value = 0;
+                if (id !== 'timerH' && this.value > 59) this.value = 59;
+            });
+        });
+
+        // Dynamic light tracking for panels
+        document.addEventListener('mousemove', (e) => {
+            document.querySelectorAll('.m2-panel').forEach(panel => {
+                const rect = panel.getBoundingClientRect();
+                panel.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                panel.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+            });
+        });
+    </script>
+</body>
+</html>
